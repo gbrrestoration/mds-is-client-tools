@@ -56,7 +56,7 @@ def perform_offline_refresh(refresh_token: str, client_id: str, scopes: List[str
     return response.json()
 
 
-def exchange_offline_for_access(client_id : str, scopes: List[str]) -> str:
+def exchange_offline_for_access(client_id : str = "automated-access", scopes: List[str] = ["roles"]) -> str:
     """    exchange_offline_for_access
         Exchanges offline token for access token using the refresh token flow.
         
@@ -64,10 +64,10 @@ def exchange_offline_for_access(client_id : str, scopes: List[str]) -> str:
 
         Arguments
         ----------
-        client_id : str
-            The client id
-        scopes : List[str]
-            The openid connect scopes desired
+        client_id : str, optional
+            The client id, default = "automated-access"
+        scopes : List[str], optional
+            The openid connect scopes desired, default = ["roles"]
 
         Returns
         -------

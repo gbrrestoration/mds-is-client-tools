@@ -109,7 +109,7 @@ def await_device_auth_flow_completion(device_code: str, client_id: str, interval
         return None
 
 
-def generate_offline_access_token(export_to_env : bool = False) -> None:
+def generate_offline_access_token(export_to_env: bool = False) -> None:
     # OIDC client ids
     client_id = "automated-access"
 
@@ -163,9 +163,14 @@ def generate_offline_access_token(export_to_env : bool = False) -> None:
     if oauth_tokens is None:
         raise Exception(
             "Failed to retrieve tokens from device authorisation flow!")
-        
+
     if export_to_env:
         print("Establishing environment variable.")
         os.environ['RRAP_OFFLINE_TOKEN'] = oauth_tokens['refresh_token']
 
     return oauth_tokens['refresh_token']
+
+
+if __name__ == "__main__":
+    token = generate_offline_access_token()
+    print(f"Key: {token}")
