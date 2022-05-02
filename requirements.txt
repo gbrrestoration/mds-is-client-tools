@@ -1,1 +1,2 @@
 requests
+cloudpathlib[s3]
