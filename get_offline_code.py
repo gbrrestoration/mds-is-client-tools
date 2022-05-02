@@ -6,8 +6,13 @@ import os
 
 """
 Contained in this script are basic device OAuth flows against a
-keycloak server used to gain OIDC tokens which can be used to 
-create temporary access credentials and temporary console sessions.
+keycloak server used to establish offline access tokens. 
+
+This should only be run once per user, then the offline refresh 
+token can be used to exchange for API access tokens as required.
+
+This exchange process is shown in offline_access and demonstrated
+in example_usage.
 """
 
 
@@ -16,10 +21,8 @@ def initiate_device_auth_flow(client_id: str, device_endpoint: str, scopes: List
     the keycloak server. The client id and scope are included.
 
     Args:
-        client_id (str): The client id desired for the 
-        authorization flow - this is linked to the role 
-        ARN that the IAM identity provider relationship 
-        is allowed to authorize.
+        client_id (str): The client id which enables offline 
+        access.
 
     Returns:
         Dict: The JSON response from the keycloak endpoint.
@@ -109,7 +112,33 @@ def await_device_auth_flow_completion(device_code: str, client_id: str, interval
         return None
 
 
-def generate_offline_access_token(export_to_env: bool = False) -> None:
+def generate_offline_access_token(export_to_env: bool = False) -> str:
+    """    generate_offline_access_token
+        Produces an offline token by completing an OAuth device 
+        grant against the configured keycloak client.
+
+        Arguments
+        ----------
+        export_to_env : bool, optional
+            Should the token be exported as RRAP_OFFLINE_TOKEN, by default False
+
+        Returns
+        -------
+         : str
+            the offline access token
+
+        Raises
+        ------
+        Exception
+            If the oauth token request fails
+
+        See Also (optional)
+        --------
+
+        Examples (optional)
+        --------
+    """
+
     # OIDC client ids
     client_id = "automated-access"
 
