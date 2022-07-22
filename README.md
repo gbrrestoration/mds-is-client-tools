@@ -1,26 +1,25 @@
-# mds-is-client-tools
-Suite of client scripts to provide example automated access workflows.
+# mdsisclienttools
 
-## Purpose 
-Provide examples of scripts demonstrating the automated access workflows compatible with the system. For more information see the [documentation](https://gbrrestoration.github.io/rrap-mds-knowledge-hub/information-system/data-store/automated-access.html).
+Python package containing client tools to assist in accessing and using the RRAP M&DS IS APIs and services.
 
-## To run
-
-### Linux
+## Installation
 
 ```bash
-# Setup environment
-python -m venv .venv 
-source .venv/bin/activate
-# Install requirements
-pip install -r requirements.txt 
-
-# (First time only) get offline code
-python get_offline_code.py 
-# Save the code and export to environment
-export RRAP_OFFLINE_TOKEN="above token here"
-# Demonstrate getting access token 
-python offline_access.py 
-# Full end to end example 
-python example_usage.py
+$ pip install mdsisclienttools
 ```
+
+## Usage
+
+- TODO
+
+## Contributing
+
+Interested in contributing? Check out the contributing guidelines. Please note that this project is released with a Code of Conduct. By contributing to this project, you agree to abide by its terms.
+
+## License
+
+`mdsisclienttools` was created by RRAP. RRAP retains all rights to the source and it may not be reproduced, distributed, or used to create derivative works.
+
+## Credits
+
+`mdsisclienttools` was created with [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) and the `py-pkgs-cookiecutter` [template](https://github.com/py-pkgs/py-pkgs-cookiecutter).

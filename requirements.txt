@@ -1,2 +1,0 @@
-requests
-cloudpathlib[s3]
