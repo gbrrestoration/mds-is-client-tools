@@ -2,14 +2,19 @@
 name = "mdsisclienttools"
 version = "0.1.0"
 description = "Python package containing client tools to assist in accessing and using the RRAP M&DS IS APIs and services."
-authors = ["RRAP"]
+authors = ["RRAP <rrapisdev@gmail.com>"]
 license = "None"
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+requests = "^2.28.1"
+cloudpathlib = "^0.9.0"
 
 [tool.poetry.dev-dependencies]
+autopep8 = "^1.6.0"
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
 [tool.semantic_release]
 version_variable = "pyproject.toml:version" # version location
 branch = "main"                             # branch to make releases of
