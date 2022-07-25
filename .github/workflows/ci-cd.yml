@@ -26,6 +26,9 @@ jobs:
       - name: Test with pytest
         run: poetry run pytest tests/ --cov=mdsisclienttools --cov-report=xml
 
+      - name: Mypy type check
+        run: poetry run mypy .
+
       - name: Use Codecov to track coverage
         uses: codecov/codecov-action@v2
         with:
