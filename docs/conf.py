@@ -35,6 +35,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 html_theme = "sphinx_rtd_theme"
 
+# sphinx auto api settings
+autodoc_default_options = {
+    'special-members': '__init__',
+}
 
 # Temporary workaround for 5.1.0 bug
 import sphinx
