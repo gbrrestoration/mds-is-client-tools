@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mdsisclienttools"
-version = "0.0.2"
+version = "0.0.3"
 description = "Python package containing client tools to assist in accessing and using the RRAP M&DS IS APIs and services."
 authors = ["RRAP <rrapisdev@gmail.com>"]
 license = "None"
