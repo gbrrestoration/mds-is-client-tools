@@ -1,16 +1,10 @@
 def fake_function() -> str:
-    """    fake_function
-        Fake docstring for fake function
+    """This is a function which 
+    is used for demonstration
 
-        Returns
-        -------
-         : str
-            This is a fake output
-
-        See Also (optional)
-        --------
-
-        Examples (optional)
-        --------
+    Returns
+    -------
+    str
+        The output string
     """
     return "hello world"
