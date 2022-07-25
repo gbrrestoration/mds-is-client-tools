@@ -1,5 +1,5 @@
 # mdsisclienttools
-
+![build](https://github.com/gbrrestoration/mds-is-client-tools/actions/workflows/ci-cd/badge.svg)
 [![codecov](https://codecov.io/gh/gbrrestoration/mds-is-client-tools/branch/main/graph/badge.svg?token=QVMBSUJFEF)](https://codecov.io/gh/gbrrestoration/mds-is-client-tools)
 
 Python package containing client tools to assist in accessing and using the RRAP M&DS IS APIs and services.
