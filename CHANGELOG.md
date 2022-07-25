@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.1 (2022-07-25)
+
+
 ## v0.2.0 (2022-07-25)
 ### Feature
 * **ci cd:** Forcing version to avoid duplicate upload ([`cc39b55`](https://github.com/gbrrestoration/mds-is-client-tools/commit/cc39b55d354accce0e826dbe52c9244f7a75eb5b))
