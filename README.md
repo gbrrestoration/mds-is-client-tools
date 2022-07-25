@@ -12,7 +12,8 @@ $ pip install mdsisclienttools
 
 ## Usage
 
--   TODO
+### Documentation 
+[See our read-the-docs documentation here](http://mds-is-client-tools.readthedocs.io/)
 
 ## Contributing
 
