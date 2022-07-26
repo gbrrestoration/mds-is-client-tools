@@ -106,7 +106,7 @@ class DeviceFlowManager:
         self.retrieve_keycloak_public_key()
         self.get_tokens()
     
-    def optional_print(self, message:str) -> None:
+    def optional_print(self, message:Optional[str] = None) -> None:
         """Prints only if the silent value is not 
         flagged.
 
@@ -116,7 +116,10 @@ class DeviceFlowManager:
             The message to print.
         """
         if not self.silent:
-            print(message)
+            if message:
+                print(message)
+            else:
+                print()
 
     def retrieve_local_tokens(self, stage: Stage) -> Optional[Tokens]:
         """Retrieves credentials from a local cache file, if present. 
@@ -134,21 +137,21 @@ class DeviceFlowManager:
         Optional[Tokens]
             Tokens object if successful or None.
         """
-        print("Looking for existing tokens in local storage.")
-        print()
+        self.optional_print("Looking for existing tokens in local storage.")
+        self.optional_print("")
         # Try to read file
         try:
             stage_tokens = StageTokens.parse_file(self.token_storage_location)
             tokens = stage_tokens.stages.get(stage)
             assert tokens
         except:
-            print(f"No local storage tokens for stage {stage} found.")
-            print()
+            self.optional_print(f"No local storage tokens for stage {stage} found.")
+            self.optional_print("")
             return None
 
         # Validate
-        print("Validating found tokens")
-        print()
+        self.optional_print("Validating found tokens")
+        self.optional_print()
         valid = True
         try:
             self.validate_token(tokens=tokens)
@@ -157,15 +160,15 @@ class DeviceFlowManager:
 
         # Return the tokens found if valid
         if valid:
-            print("Found tokens valid, using.")
-            print()
+            self.optional_print("Found tokens valid, using.")
+            self.optional_print()
             return tokens
 
         # Tokens found but were invalid, try refreshing
         refresh_succeeded = True
         try:
-            print("Trying to use found tokens to refresh the access token.")
-            print()
+            self.optional_print("Trying to use found tokens to refresh the access token.")
+            self.optional_print()
             refreshed = self.perform_refresh(tokens=tokens)
 
             # unpack response and return access token
@@ -187,19 +190,19 @@ class DeviceFlowManager:
         # If refresh fails for some reason then return None
         # otherwise return the tokens
         if refresh_succeeded:
-            print("Token refresh successful.")
-            print()
+            self.optional_print("Token refresh successful.")
+            self.optional_print()
             return tokens
         else:
-            print("Tokens found in storage but they are not valid.")
-            print()
+            self.optional_print("Tokens found in storage but they are not valid.")
+            self.optional_print()
             return None
 
     def reset_local_storage(self) -> None:
         """Resets the local storage by setting all 
         values to None.
         """
-        print("Flushing tokens from local storage.")
+        self.optional_print("Flushing tokens from local storage.")
         cleared_tokens = StageTokens(
             stages={
                 Stage.TEST: None,
@@ -271,8 +274,8 @@ class DeviceFlowManager:
         """
         # Try getting from local storage first
         # These are always validated
-        print("Attempting to generate authorisation tokens.")
-        print()
+        self.optional_print("Attempting to generate authorisation tokens.")
+        self.optional_print()
 
         retrieved_tokens = self.retrieve_local_tokens(self.stage)
         if retrieved_tokens:
@@ -284,30 +287,30 @@ class DeviceFlowManager:
         # grant type
         device_grant_type = "urn:ietf:params:oauth:grant-type:device_code"
 
-        print("Initiating device auth flow to setup offline access token.")
-        print()
+        self.optional_print("Initiating device auth flow to setup offline access token.")
+        self.optional_print()
         device_auth_response = self.initiate_device_auth_flow()
 
-        print("Decoding response")
-        print()
+        self.optional_print("Decoding response")
+        self.optional_print()
         device_code = device_auth_response['device_code']
         user_code = device_auth_response['user_code']
         verification_uri = device_auth_response['verification_uri_complete']
         interval = device_auth_response['interval']
 
-        print("Please authorise using the following endpoint.")
-        print()
+        self.optional_print("Please authorise using the following endpoint.")
+        self.optional_print()
         self.display_device_auth_flow(user_code, verification_uri)
-        print()
+        self.optional_print()
 
-        print("Awaiting completion")
-        print()
+        self.optional_print("Awaiting completion")
+        self.optional_print()
         oauth_tokens = self.await_device_auth_flow_completion(
             device_code=device_code,
             interval=interval,
             grant_type=device_grant_type,
         )
-        print()
+        self.optional_print()
 
         if oauth_tokens is None:
             raise Exception(
@@ -332,16 +335,16 @@ class DeviceFlowManager:
         )
         self.update_local_storage(self.stage)
 
-        print("Token generation complete. Authorisation successful.")
-        print()
+        self.optional_print("Token generation complete. Authorisation successful.")
+        self.optional_print()
 
     def perform_token_refresh(self) -> None:
         """Updates the current tokens by using the refresh token.
         """
         assert self.tokens is not None
 
-        print("Refreshing using refresh token")
-        print()
+        self.optional_print("Refreshing using refresh token")
+        self.optional_print()
 
         refreshed = self.perform_refresh()
 
@@ -459,7 +462,7 @@ class DeviceFlowManager:
             self.validate_token()
         except Exception as e:
             # tokens are invalid
-            print(f"Token validation failed due to error: {e}")
+            self.optional_print(f"Token validation failed due to error: {e}")
             # does token refresh work?
             try:
                 self.perform_token_refresh()
@@ -487,20 +490,20 @@ class DeviceFlowManager:
             response_json = r.json()
             self.public_key = f"-----BEGIN PUBLIC KEY-----\r\n{response_json['public_key']}\r\n-----END PUBLIC KEY-----"
         except requests.exceptions.HTTPError as errh:
-            print(error_message)
-            print("Http Error:", errh)
+            self.optional_print(error_message)
+            self.optional_print("Http Error:" + str(errh))
             raise errh
         except requests.exceptions.ConnectionError as errc:
-            print(error_message)
-            print("Error Connecting:", errc)
+            self.optional_print(error_message)
+            self.optional_print("Error Connecting:" + str(errc))
             raise errc
         except requests.exceptions.Timeout as errt:
-            print(error_message)
-            print("Timeout Error:", errt)
+            self.optional_print(error_message)
+            self.optional_print("Timeout Error:" + str(errt))
             raise errt
         except requests.exceptions.RequestException as err:
-            print(error_message)
-            print("An unknown error occured:", err)
+            self.optional_print(error_message)
+            self.optional_print("An unknown error occured: " + str(err))
             raise err
 
     def display_device_auth_flow(self, user_code: str, verification_url: str) -> None:
@@ -582,10 +585,10 @@ class DeviceFlowManager:
 
         try:
             assert response_data
-            print(f"Failed due to {response_data['error']}")
+            self.optional_print(f"Failed due to {response_data['error']}")
             return None
         except Exception as e:
-            print(
+            self.optional_print(
                 f"Failed with unknown error, failed to find error message. Error {e}")
             return None
 

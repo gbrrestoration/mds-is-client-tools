@@ -1,4 +1,5 @@
 from mdsisclienttools import mdsisclienttools
+from mdsisclienttools.auth.TokenManager import DeviceFlowManager
 
 
 def test_fake() -> None:

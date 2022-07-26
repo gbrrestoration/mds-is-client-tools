@@ -11,7 +11,7 @@ python = "^3.7"
 requests = "^2.28.1"
 pydantic = "^1.9.1"
 types-requests = "^2.28.3"
-jose = "^1.0.0"
+python-jose = "^3.3.0"
 
 [tool.poetry.dev-dependencies]
 
