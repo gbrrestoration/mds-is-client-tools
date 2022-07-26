@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2022-07-26)
+### Feature
+* **testing feature:** This is an example which should appear in changelog ([`3fbd6b4`](https://github.com/gbrrestoration/mds-is-client-tools/commit/3fbd6b4a0b920a3bb946d0e2369b3369f84a40ad))
+
 ## v1.0.5 (2022-07-26)
 
 
