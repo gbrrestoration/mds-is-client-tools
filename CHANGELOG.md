@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.0 (2022-08-05)
+### Feature
+* **Data store:** Adding data store endpoint to upload files ([`4b05f58`](https://github.com/gbrrestoration/mds-is-client-tools/commit/4b05f588e1192680aa3fdee8003f00e804243b16))
+
 ## v1.2.1 (2022-08-05)
 ### Fix
 * **Data store:** Adding data store endpoint to download function ([`cff5029`](https://github.com/gbrrestoration/mds-is-client-tools/commit/cff5029eb626b2936829d3c63852991a94a26985))
