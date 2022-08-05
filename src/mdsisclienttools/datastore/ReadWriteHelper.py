@@ -1,7 +1,7 @@
 import os
 import requests
 from typing import Dict, Any, Optional, List
-import cloudpathlib.s3 as s3
+import cloudpathlib.s3 as s3 #type: ignore
 from mdsisclienttools.auth.TokenManager import BearerAuth
 
 def fetch_all_datasets(auth: BearerAuth, endpoint:str="https://data-api.rrap-is.com") -> List[Dict[str, Any]]:
@@ -136,7 +136,7 @@ def print_creds(creds: Dict[str, Any]) -> None:
         Examples (optional)
         --------
     """
-    def transform(name, val): return f"export {name.upper()}=\"{val}\""
+    def transform(name:str, val:str)->str: return f"export {name.upper()}=\"{val}\""
     item_list = []
     for key, val in creds.items():
         if (key != "expiry"):
@@ -193,7 +193,7 @@ def download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destination
     # download
     path.download_to(destination_dir)
 
-def download(download_path:str, handle:str, auth:BearerAuth):
+def download(download_path:str, handle:str, auth:BearerAuth)->None:
 
     # Get info about handle
     response = fetch_dataset(handle_id=handle, auth=auth)
