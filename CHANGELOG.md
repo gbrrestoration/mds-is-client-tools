@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.1 (2022-08-05)
+### Fix
+* **Data store:** Adding data store endpoint to download function ([`cff5029`](https://github.com/gbrrestoration/mds-is-client-tools/commit/cff5029eb626b2936829d3c63852991a94a26985))
+
 ## v1.2.0 (2022-08-05)
 ### Feature
 * **Data store:** Added ReadWriteHelper ([`1ea9299`](https://github.com/gbrrestoration/mds-is-client-tools/commit/1ea929911d9a29fcb7c67b8fcdc01decbd0e60b9))
