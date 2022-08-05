@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.0 (2022-08-05)
+### Feature
+* **Data store:** Added ReadWriteHelper ([`1ea9299`](https://github.com/gbrrestoration/mds-is-client-tools/commit/1ea929911d9a29fcb7c67b8fcdc01decbd0e60b9))
+
 ## v1.1.0 (2022-07-26)
 ### Feature
 * **testing feature:** This is an example which should appear in changelog ([`3fbd6b4`](https://github.com/gbrrestoration/mds-is-client-tools/commit/3fbd6b4a0b920a3bb946d0e2369b3369f84a40ad))
