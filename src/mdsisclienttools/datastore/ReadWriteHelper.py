@@ -7,7 +7,7 @@ from mdsisclienttools.auth.TokenManager import BearerAuth
 DEFAULT_DATA_STORE_ENDPOINT = "https://data-api.rrap-is.com"
 
 
-def fetch_all_datasets(auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> List[Dict[str, Any]]:
+def _fetch_all_datasets(auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> List[Dict[str, Any]]:
     """    fetch_datasets
         Given basic bearer auth will call the fetch 
         datasets API endpoint to find an example dataset. 
@@ -40,8 +40,8 @@ def fetch_all_datasets(auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDP
     return response['registry_items']
 
 
-def fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Optional[Dict[str, Any]]:
-    """    fetch_dataset
+def _fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Optional[Dict[str, Any]]:
+    """ _fetch_dataset
         Given the handle ID to lookup and the basic auth will 
         call the fetch dataset data store API to get more 
         information about the dataset.
@@ -89,7 +89,7 @@ def fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DATA
             raise e
 
 
-def read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
+def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
     """    read_dataset
         Gets AWS read credentials using the data store API.
 
@@ -122,6 +122,17 @@ def read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFA
     # Give back AWS creds
     return response['credentials']
 
+def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
+    _endpoint = endpoint + "/registry/credentials/generate-write-access-credentials"
+    response = requests.post(_endpoint, json=s3_info, auth=auth)
+
+    # Check successful
+    assert response.status_code == 200
+    response = response.json()
+    assert response['status']['success']
+
+    # Give back AWS creds
+    return response['credentials']
 
 def print_creds(creds: Dict[str, Any]) -> None:
     """    print_creds
@@ -167,7 +178,7 @@ def print_command_suggestion(s3_loc: Dict[str, Any]) -> None:
         f"To view: aws s3 ls {s3_loc['s3_uri']}\nTo download (into folder 'data'): aws s3 sync {s3_loc['s3_uri']} data/")
 
 
-def download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destination_dir: str) -> None:
+def _download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destination_dir: str) -> None:
     """    download_files
         Uses the cloudpathlib library to download all the files and sub dirs/files from 
         the specified s3 location (s3_uri in s3_loc) into the specified destination 
@@ -197,6 +208,59 @@ def download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destination
     # download
     path.download_to(destination_dir)
 
+def _upload_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], source_dir:str) -> None:
+    # create client
+    client = s3.S3Client(**s3_creds)
+    # create path
+    path = s3.S3Path(cloud_path=s3_loc['s3_uri'], client=client)
+    # download
+    path.upload_from(source_dir)
+
+def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> None:
+    """Given a source path, handle and authorisation information, will
+    retrieve read only credentials from the data store API, fetch the 
+    dataset information, then upload all the dataset files to the 
+    handle id specified location. 
+
+    Parameters
+    ----------
+    source_dir : str
+        The path of to folder of files to upload. 
+    handle : str
+        The handle ID of the dataset to download.
+    auth : BearerAuth
+        The bearer auth object. See TokenManager library.
+
+    Raises
+    ------
+    ValueError
+        Raises a value error if the handle id is invalid.
+    """
+    # Get info about handle
+    response = _fetch_dataset(handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
+
+    # Handle was found
+    if response:
+        s3_loc = response['s3']
+
+        print(f"Found dataset: {response['dataset_name']}.")
+    else:
+        # Handle was not found
+        raise ValueError(
+            f'Invalid input... the dataset with that handle: {handle} could not be found.')
+
+    # get write credentials for this dataset
+    creds = _write_dataset(s3_loc, auth=auth, endpoint = data_store_api_endpoint)
+
+    print()
+    print(f'Attempting to upload files to {source_dir}')
+
+    # Don't need expiry to use
+    del creds['expiry']
+    _upload_files(s3_loc=s3_loc, s3_creds=creds,
+                   source_dir=source_dir)
+    print(f"Upload complete.")
+    
 
 def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> None:
     """Given a download path, handle and authorisation information, will
@@ -221,7 +285,7 @@ def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_e
         Raises a value error if the dataset cannot be found.
     """
     # Get info about handle
-    response = fetch_dataset(handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
+    response = _fetch_dataset(handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
 
     # Handle was found
     if response:
@@ -234,13 +298,13 @@ def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_e
             f'Invalid input... the dataset with that handle: {handle} could not be found.')
 
     # get read credentials for this dataset
-    creds = read_dataset(s3_loc, auth=auth, endpoint = data_store_api_endpoint)
+    creds = _read_dataset(s3_loc, auth=auth, endpoint = data_store_api_endpoint)
 
     print()
     print(f'Attempting to download files to {download_path}')
 
     # Don't need expiry to use
     del creds['expiry']
-    download_files(s3_loc=s3_loc, s3_creds=creds,
+    _download_files(s3_loc=s3_loc, s3_creds=creds,
                    destination_dir=download_path)
     print(f"Download complete.")
