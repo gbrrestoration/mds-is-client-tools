@@ -123,6 +123,20 @@ def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEF
     return response['credentials']
 
 def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
+    """  _write_dataset
+        Gets AWS write credentials using the data store API.
+
+        Arguments
+        ----------
+        creds : Dict[str, Any]
+            The AWS creds
+
+        See Also (optional)
+        --------
+
+        Examples (optional)
+        --------
+    """
     _endpoint = endpoint + "/registry/credentials/generate-write-access-credentials"
     response = requests.post(_endpoint, json=s3_info, auth=auth)
 
@@ -224,12 +238,12 @@ def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoi
 
     Parameters
     ----------
-    source_dir : str
-        The path of to folder of files to upload. 
     handle : str
         The handle ID of the dataset to download.
     auth : BearerAuth
         The bearer auth object. See TokenManager library.
+    source_dir : str
+        The path of to folder of files to upload.
 
     Raises
     ------

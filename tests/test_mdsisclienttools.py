@@ -1,6 +1,6 @@
 import pytest
 from mdsisclienttools.auth.TokenManager import BearerAuth, DeviceFlowManager
-import mdsisclienttools.datastore.ReadWriteHelper as IOHelper
+import mdsisclienttools.datastore.ReadWriteHelper as IOHelper # type: ignore
 
 IOHelper.DEFAULT_DATA_STORE_ENDPOINT = "https://data.testing.rrap-is.com"
 auth_server = "https://auth.dev.rrap-is.com/auth/realms/rrap"
