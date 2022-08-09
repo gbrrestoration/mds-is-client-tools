@@ -8,7 +8,7 @@ DEFAULT_DATA_STORE_ENDPOINT = "https://data-api.rrap-is.com"
 
 
 def _fetch_all_datasets(auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> List[Dict[str, Any]]:
-    """    fetch_datasets
+    """ fetch_datasets
         Given basic bearer auth will call the fetch 
         datasets API endpoint to find an example dataset. 
 
