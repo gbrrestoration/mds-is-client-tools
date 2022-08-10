@@ -1,6 +1,6 @@
 import pytest
 from mdsisclienttools.auth.TokenManager import BearerAuth, DeviceFlowManager
-import mdsisclienttools.datastore.ReadWriteHelper as IOHelper # type: ignore
+import mdsisclienttools.datastore.ReadWriteHelper as IOHelper
 
 IOHelper.DEFAULT_DATA_STORE_ENDPOINT = "https://data-api.testing.rrap-is.com"
 auth_server = "https://auth.dev.rrap-is.com/auth/realms/rrap"
@@ -18,12 +18,13 @@ def init_auth_token()->DeviceFlowManager:
     )
     return token_manager
 
-def test_get_handle(init_auth_token: DeviceFlowManager)->None:
+def test_download_data(init_auth_token: DeviceFlowManager)->None:
     auth = init_auth_token.get_auth
-    handle_id = "10378.1/1688092"
+    handle_id = "10378.1/1688259"
     IOHelper.download('./Data',handle_id,auth())
 
-def test_read_auth( init_auth_token: DeviceFlowManager)->None:
+def test_upload_data(init_auth_token: DeviceFlowManager)->None:
     auth = init_auth_token.get_auth
-    handle_id = "10378.1/1688092"
-    assert IOHelper._read_dataset(handle_id,auth())
+    handle_id = "10378.1/1688259"
+    IOHelper.upload(handle_id, auth(), "./data")
+

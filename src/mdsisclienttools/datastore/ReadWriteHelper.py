@@ -73,8 +73,16 @@ def _fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DAT
     params = {
         'handle_id': handle_id
     }
-    response = requests.get(fetch_endpoint, params=params, auth=auth)
-
+    try:
+        response = requests.get(fetch_endpoint, params=params, auth=auth)
+    except requests.exceptions.HTTPError as errh:
+        print ("Http Error:",errh)
+    except requests.exceptions.ConnectionError as errc:
+        print ("Error Connecting:",errc)
+    except requests.exceptions.Timeout as errt:
+        print ("Timeout Error:",errt)
+    except requests.exceptions.RequestException as err:
+        print ("OOps: Something Else",err)
     # Check successful
     try:
         assert response.status_code == 200
@@ -86,6 +94,8 @@ def _fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DAT
         if (response.status_code == 200):
             return None
         else:
+            message = f'Response code was {response.status_code}'
+            print(f"Unexpected {e=}, {type(e)=}, {message}")
             raise e
 
 
@@ -151,7 +161,7 @@ def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DE
                              }, auth=auth)
 
     # Check successful
-    assert response.status_code == 200, f"Expected response 200OK but got {response.status_code}"
+    assert response.status_code == 200, f"Expected response 200 OK but got {response.status_code}"
     response = response.json()
     assert response['status']['success']
 
