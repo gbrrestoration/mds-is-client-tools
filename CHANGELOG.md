@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.2 (2022-08-10)
+### Fix
+* **ReadWriteHelper:** Fixed incorrect API payloads and missing __init__.py file ([`07db236`](https://github.com/gbrrestoration/mds-is-client-tools/commit/07db236456d981576ce7ec3dfffcd3f4fc81a0c8))
+
+## v1.3.1 (2022-08-09)
+### Fix
+* **Data store:** Doco plus ignore type ([`3f8abd5`](https://github.com/gbrrestoration/mds-is-client-tools/commit/3f8abd581ec0c13fd09627822e660aa9778aa634))
+
 ## v1.3.0 (2022-08-05)
 ### Feature
 * **Data store:** Adding data store endpoint to upload files ([`4b05f58`](https://github.com/gbrrestoration/mds-is-client-tools/commit/4b05f588e1192680aa3fdee8003f00e804243b16))
