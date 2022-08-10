@@ -130,3 +130,6 @@ dmypy.json
 
 #Secrets
 .tokens.json
+
+# Local working files
+temp

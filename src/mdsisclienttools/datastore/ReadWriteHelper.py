@@ -69,11 +69,11 @@ def _fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DAT
         Examples (optional)
         --------
     """
-    _endpoint = endpoint + "/registry/items/fetch-dataset"
+    fetch_endpoint = endpoint + "/registry/items/fetch-dataset"
     params = {
         'handle_id': handle_id
     }
-    response = requests.get(_endpoint, params=params, auth=auth)
+    response = requests.get(fetch_endpoint, params=params, auth=auth)
 
     # Check successful
     try:
@@ -81,7 +81,7 @@ def _fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DAT
         assert response.json()['status']['success']
 
         # Return the items
-        return response.json()['registry_item']
+        return response.json()['item']
     except Exception as e:
         if (response.status_code == 200):
             return None
@@ -111,8 +111,12 @@ def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEF
         Examples (optional)
         --------
     """
-    _endpoint = endpoint + "/registry/credentials/generate-read-access-credentials"
-    response = requests.post(_endpoint, json=s3_info, auth=auth)
+    read_cred_endpoint = endpoint + \
+        "/registry/credentials/generate-read-access-credentials"
+    response = requests.post(read_cred_endpoint, json={
+        "s3_location": s3_info,
+        "console_session_required": False
+    }, auth=auth)
 
     # Check successful
     assert response.status_code == 200
@@ -121,6 +125,7 @@ def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEF
 
     # Give back AWS creds
     return response['credentials']
+
 
 def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
     """  _write_dataset
@@ -137,16 +142,22 @@ def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DE
         Examples (optional)
         --------
     """
-    _endpoint = endpoint + "/registry/credentials/generate-write-access-credentials"
-    response = requests.post(_endpoint, json=s3_info, auth=auth)
+    write_credential_endpoint = endpoint + \
+        "/registry/credentials/generate-write-access-credentials"
+    response = requests.post(write_credential_endpoint,
+                             json={
+                                 "s3_location": s3_info,
+                                 "console_session_required": False
+                             }, auth=auth)
 
     # Check successful
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Expected response 200OK but got {response.status_code}"
     response = response.json()
     assert response['status']['success']
 
     # Give back AWS creds
     return response['credentials']
+
 
 def print_creds(creds: Dict[str, Any]) -> None:
     """    print_creds
@@ -222,13 +233,15 @@ def _download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destinatio
     # download
     path.download_to(destination_dir)
 
-def _upload_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], source_dir:str) -> None:
+
+def _upload_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], source_dir: str) -> None:
     # create client
     client = s3.S3Client(**s3_creds)
     # create path
     path = s3.S3Path(cloud_path=s3_loc['s3_uri'], client=client)
     # download
     path.upload_from(source_dir)
+
 
 def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> None:
     """Given a source path, handle and authorisation information, will
@@ -251,20 +264,22 @@ def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoi
         Raises a value error if the handle id is invalid.
     """
     # Get info about handle
-    response = _fetch_dataset(handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
+    response = _fetch_dataset(
+        handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
 
     # Handle was found
     if response:
         s3_loc = response['s3']
 
-        print(f"Found dataset: {response['dataset_name']}.")
+        print(
+            f"Found dataset: {response['collection_format']['dataset_info']['name']}.")
     else:
         # Handle was not found
         raise ValueError(
             f'Invalid input... the dataset with that handle: {handle} could not be found.')
 
     # get write credentials for this dataset
-    creds = _write_dataset(s3_loc, auth=auth, endpoint = data_store_api_endpoint)
+    creds = _write_dataset(s3_loc, auth=auth, endpoint=data_store_api_endpoint)
 
     print()
     print(f'Attempting to upload files to {source_dir}')
@@ -272,9 +287,9 @@ def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoi
     # Don't need expiry to use
     del creds['expiry']
     _upload_files(s3_loc=s3_loc, s3_creds=creds,
-                   source_dir=source_dir)
+                  source_dir=source_dir)
     print(f"Upload complete.")
-    
+
 
 def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> None:
     """Given a download path, handle and authorisation information, will
@@ -299,20 +314,22 @@ def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_e
         Raises a value error if the dataset cannot be found.
     """
     # Get info about handle
-    response = _fetch_dataset(handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
+    response = _fetch_dataset(
+        handle_id=handle, auth=auth, endpoint=data_store_api_endpoint)
 
     # Handle was found
     if response:
         s3_loc = response['s3']
 
-        print(f"Found dataset: {response['dataset_name']}.")
+        print(
+            f"Found dataset: {response['collection_format']['dataset_info']['name']}.")
     else:
         # Handle was not found
         raise ValueError(
             f'Invalid input... the dataset with that handle: {handle} could not be found.')
 
     # get read credentials for this dataset
-    creds = _read_dataset(s3_loc, auth=auth, endpoint = data_store_api_endpoint)
+    creds = _read_dataset(s3_loc, auth=auth, endpoint=data_store_api_endpoint)
 
     print()
     print(f'Attempting to download files to {download_path}')
@@ -320,5 +337,5 @@ def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_e
     # Don't need expiry to use
     del creds['expiry']
     _download_files(s3_loc=s3_loc, s3_creds=creds,
-                   destination_dir=download_path)
+                    destination_dir=download_path)
     print(f"Download complete.")
