@@ -235,23 +235,35 @@ def _download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destinatio
         --------
     """
     # create client
-    client = s3.S3Client(s3_creds['aws_access_key_id'], s3_creds['aws_secret_access_key'], s3_creds['aws_session_token'])
-
+    # client = s3.S3Client(s3_creds['aws_access_key_id'], s3_creds['aws_secret_access_key'], s3_creds['aws_session_token'])
+    client = s3.S3Client(**s3_creds)
     # create path
     path = s3.S3Path(cloud_path=s3_loc['s3_uri'], client=client)
     # download
     path.download_to(destination_dir)
+    path.__del__
 
 
 def _upload_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], source_dir: str) -> None:
     # create client
-    client = s3.S3Client(s3_creds['aws_access_key_id'], s3_creds['aws_secret_access_key'], s3_creds['aws_session_token'])
+    # client = s3.S3Client(s3_creds['aws_access_key_id'], s3_creds['aws_secret_access_key'], s3_creds['aws_session_token'])
+    try:
+        client = s3.S3Client(s3_creds['aws_access_key_id'],
+         s3_creds['aws_secret_access_key'],
+          s3_creds['aws_session_token'],
+          no_sign_request=True
+          )
+
+        # client = s3.S3Client(**s3_creds)
+    except Exception as e:
+        raise e
+
     # create path
     path = s3.S3Path(cloud_path=s3_loc['s3_uri'], client=client)
     # download
     path.upload_from(source_dir)
-    
-
+    path.__del__
+       
 
 def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> None:
     """Given a source path, handle and authorisation information, will

@@ -25,7 +25,7 @@ def init_auth_token()->DeviceFlowManager:
 @pytest.mark.dependency(depends=["test_item_exists", "test_upload_data"])
 def test_download_data(init_auth_token: DeviceFlowManager)->None:
     auth = init_auth_token.get_auth
-    IOHelper.download('./Data',handle_id, auth(), IOHelper.DEFAULT_DATA_STORE_ENDPOINT)
+    IOHelper.download('./Data', handle_id, auth(), IOHelper.DEFAULT_DATA_STORE_ENDPOINT)
 
 @pytest.mark.dependency(depends=["test_item_exists"])
 def test_upload_data(init_auth_token: DeviceFlowManager)->None:
