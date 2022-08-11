@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.0 (2022-08-11)
+### Feature
+* **Versioning:** Added __version__ dunder property to package at top level. ([`63979e7`](https://github.com/gbrrestoration/mds-is-client-tools/commit/63979e77b609f672e4792b851f237522401f60be))
+
 ## v1.3.2 (2022-08-10)
 ### Fix
 * **ReadWriteHelper:** Fixed incorrect API payloads and missing __init__.py file ([`07db236`](https://github.com/gbrrestoration/mds-is-client-tools/commit/07db236456d981576ce7ec3dfffcd3f4fc81a0c8))
