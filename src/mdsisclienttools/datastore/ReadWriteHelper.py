@@ -232,6 +232,8 @@ def _download_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], destinatio
     path = s3.S3Path(cloud_path=s3_loc['s3_uri'], client=client)
     # download
     path.download_to(destination_dir)
+    #Release file handles
+    path.__del__
 
 
 def _upload_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], source_dir: str) -> None:
@@ -241,6 +243,8 @@ def _upload_files(s3_loc: Dict[str, str], s3_creds: Dict[str, Any], source_dir: 
     path = s3.S3Path(cloud_path=s3_loc['s3_uri'], client=client)
     # download
     path.upload_from(source_dir)
+    #Release file handles
+    path.__del__
 
 
 def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> None:
