@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.1 (2022-08-12)
+
+
 ## v1.4.0 (2022-08-11)
 ### Feature
 * **Versioning:** Added __version__ dunder property to package at top level. ([`63979e7`](https://github.com/gbrrestoration/mds-is-client-tools/commit/63979e77b609f672e4792b851f237522401f60be))
