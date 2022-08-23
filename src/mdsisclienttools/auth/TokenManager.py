@@ -8,6 +8,8 @@ from enum import Enum
 from typing import Dict, Optional, List, Any
 
 # For usage in requests library
+
+
 class BearerAuth(requests.auth.AuthBase):
     def __init__(self, token: str):
         self.token = token
@@ -37,6 +39,7 @@ class StageTokens(BaseModel):
 LOCAL_STORAGE_DEFAULT = ".tokens.json"
 DEFAULT_CLIENT_ID = "client-tools"
 
+
 class DeviceFlowManager:
     def __init__(
         self,
@@ -46,13 +49,13 @@ class DeviceFlowManager:
         local_storage_location: str = LOCAL_STORAGE_DEFAULT,
         scopes: List[str] = [],
         force_token_refresh: bool = False,
-        silent : bool = False
+        silent: bool = False
     ) -> None:
         """Generates a manager class. This manager class uses the 
         OAuth device authorisation flow to generate credentials 
         on a per application stage basis. The tokens are automatically
         refreshed when accessed through the get_auth() function. 
-        
+
         Tokens are cached in local storage with a configurable file
         name and are only reproduced if the refresh token expires.
 
@@ -105,8 +108,8 @@ class DeviceFlowManager:
 
         self.retrieve_keycloak_public_key()
         self.get_tokens()
-    
-    def optional_print(self, message:Optional[str] = None) -> None:
+
+    def optional_print(self, message: Optional[str] = None) -> None:
         """Prints only if the silent value is not 
         flagged.
 
@@ -145,7 +148,8 @@ class DeviceFlowManager:
             tokens = stage_tokens.stages.get(stage)
             assert tokens
         except:
-            self.optional_print(f"No local storage tokens for stage {stage} found.")
+            self.optional_print(
+                f"No local storage tokens for stage {stage} found.")
             self.optional_print("")
             return None
 
@@ -167,7 +171,8 @@ class DeviceFlowManager:
         # Tokens found but were invalid, try refreshing
         refresh_succeeded = True
         try:
-            self.optional_print("Trying to use found tokens to refresh the access token.")
+            self.optional_print(
+                "Trying to use found tokens to refresh the access token.")
             self.optional_print()
             refreshed = self.perform_refresh(tokens=tokens)
 
@@ -194,7 +199,8 @@ class DeviceFlowManager:
             self.optional_print()
             return tokens
         else:
-            self.optional_print("Tokens found in storage but they are not valid.")
+            self.optional_print(
+                "Tokens found in storage but they are not valid.")
             self.optional_print()
             return None
 
@@ -287,7 +293,8 @@ class DeviceFlowManager:
         # grant type
         device_grant_type = "urn:ietf:params:oauth:grant-type:device_code"
 
-        self.optional_print("Initiating device auth flow to setup offline access token.")
+        self.optional_print(
+            "Initiating device auth flow to setup offline access token.")
         self.optional_print()
         device_auth_response = self.initiate_device_auth_flow()
 
@@ -335,7 +342,8 @@ class DeviceFlowManager:
         )
         self.update_local_storage(self.stage)
 
-        self.optional_print("Token generation complete. Authorisation successful.")
+        self.optional_print(
+            "Token generation complete. Authorisation successful.")
         self.optional_print()
 
     def perform_token_refresh(self) -> None:
@@ -421,7 +429,7 @@ class DeviceFlowManager:
         -------
         Dict[str, Any]
             The json response info from the device auth flow endpoint
-        """ 
+        """
         data = {
             "client_id": self.client_id,
             "scope": ' '.join(self.scopes)
@@ -429,10 +437,56 @@ class DeviceFlowManager:
         response = requests.post(self.device_endpoint, data=data).json()
         return response
 
+    def get_token(self) -> str:
+        """Uses the current token - validates it, 
+        refreshes if necessary, and returns the valid token
+        ready to be used.
+
+        Returns
+        -------
+        str
+            The access token
+
+        Raises
+        ------
+        Exception
+            Raises exception if tokens/public_key are not setup - make sure 
+            that the object is instantiated properly before calling this function
+        Exception
+            If the token is invalid and cannot be refreshed
+        """
+        # make auth object using access_token
+        if (self.tokens is None or self.public_key is None):
+            raise Exception(
+                "cannot generate token without access token or public key")
+
+        assert self.tokens
+        assert self.public_key
+
+        # are tokens valid?
+        try:
+            self.validate_token()
+        except Exception as e:
+            # tokens are invalid
+            self.optional_print(f"Token validation failed due to error: {e}")
+            # does token refresh work?
+            try:
+                self.perform_token_refresh()
+                self.validate_token()
+            except Exception as e:
+                try:
+                    # Does new token generation work?
+                    self.get_tokens()
+                    self.validate_token()
+                except Exception as e:
+                    raise Exception(
+                        f"Device log in failed, access token expired/invalid, and refresh failed. Error: {e}")
+        return self.tokens.access_token
+
     def get_auth(self) -> BearerAuth:
         """A helper function which produces a BearerAuth object for use
         in the requests.xxx objects. For example: 
-        
+
         manager = DeviceAuthFlowManager(...)
         auth = manager.get_auth 
         requests.post(..., auth=auth)
@@ -456,7 +510,7 @@ class DeviceFlowManager:
 
         assert self.tokens
         assert self.public_key
-        
+
         # are tokens valid?
         try:
             self.validate_token()
@@ -485,7 +539,7 @@ class DeviceFlowManager:
         error_message = f"Error finding public key from keycloak endpoint {self.keycloak_endpoint}."
         try:
             r = requests.get(self.keycloak_endpoint,
-                       timeout=3)
+                             timeout=3)
             r.raise_for_status()
             response_json = r.json()
             self.public_key = f"-----BEGIN PUBLIC KEY-----\r\n{response_json['public_key']}\r\n-----END PUBLIC KEY-----"
@@ -594,7 +648,7 @@ class DeviceFlowManager:
 
     def validate_token(self, tokens: Optional[Tokens] = None) -> None:
         """Uses the python-jose library to validate current creds.
-        
+
         In this context, it is basically just checking signature
         and expiry. The tokens are enforced at the API side 
         as well.
