@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v1.5.1 (2022-11-04)
+
+
 ## v1.5.0 (2022-08-23)
 ### Feature
 * **TokenManager:** Adding a get_token function to device auth flow manager for use with client tools ([`e8d029a`](https://github.com/gbrrestoration/mds-is-client-tools/commit/e8d029a21ddf6ea838e8d62c9e8f331c925a9002))
