@@ -6,6 +6,12 @@ from jose.constants import ALGORITHMS  # type: ignore
 from pydantic import BaseModel
 from enum import Enum
 from typing import Dict, Optional, List, Any
+import json
+
+
+class StorageType(str, Enum):
+    FILE = "FILE"
+    OBJECT = "OBJECT"
 
 # For usage in requests library
 
@@ -46,18 +52,19 @@ class DeviceFlowManager:
         stage: str,
         keycloak_endpoint: str,
         client_id: str = DEFAULT_CLIENT_ID,
-        local_storage_location: str = LOCAL_STORAGE_DEFAULT,
+        local_storage_location: Optional[str] = None,
+        local_storage_object: Optional[Dict[str, Any]] = None,
         scopes: List[str] = [],
         force_token_refresh: bool = False,
         silent: bool = False
     ) -> None:
         """Generates a manager class. This manager class uses the 
-        OAuth device authorisation flow to generate credentials 
-        on a per application stage basis. The tokens are automatically
-        refreshed when accessed through the get_auth() function. 
+        OAuth device authorisation flow to generate credentials on a per
+        application stage basis. The tokens are automatically refreshed when
+        accessed through the get_auth() function. 
 
-        Tokens are cached in local storage with a configurable file
-        name and are only reproduced if the refresh token expires.
+        Tokens are cached in local storage with a configurable file name and are
+        only reproduced if the refresh token expires.
 
         Parameters
         ----------
@@ -66,25 +73,56 @@ class DeviceFlowManager:
         keycloak_endpoint : str
             The keycloak endpoint to use.
         client_id : str, optional
-            The client id for the keycloak authorisation, by default DEFAULT_CLIENT_ID
+            The client id for the keycloak authorisation, by default
+            DEFAULT_CLIENT_ID
+        local_storage_object: Optional[Dict[str, Any]] = None
+            provide a storage object rather than a location - this will cache
+            the tokens in the provided dictionary useful for local session
+            states 
         local_storage_location : str, optional
-            The storage location for caching creds, by default LOCAL_STORAGE_DEFAULT
+            The storage location for caching creds, by default
+            LOCAL_STORAGE_DEFAULT
         scopes : List[str], optional
             The scopes you want to request against client, by default []
         force_token_refresh : bool, optional
-            If you want to force the manager to dump current creds, by default False
+            If you want to force the manager to dump current creds, by default
+            False
         silent : bool
-            Force silence in the stdout outputs for use in context where printing
-            would be irritating. By default False (helpful messages are printed).
+            Force silence in the stdout outputs for use in context where
+            printing would be irritating. By default False (helpful messages are
+            printed).
 
         Raises
         ------
         ValueError
             If the stage provided is invalid.
         """
+        self.silent = silent
+
+        if local_storage_location is not None and local_storage_object is not None:
+            raise ValueError(
+                "Can't specify both local storage file and object.")
+
+        self.storage_type: StorageType = StorageType.FILE
+
+        if local_storage_object is None:
+            self.storage_type = StorageType.FILE
+            # use file storage
+            if local_storage_location is None:
+                self.optional_print(
+                    f"No storage or object provided, using default location: {LOCAL_STORAGE_DEFAULT}.")
+                self.token_storage_location = LOCAL_STORAGE_DEFAULT
+            else:
+                self.token_storage_location = local_storage_location
+        else:
+            # use object storage
+            self.storage_type = StorageType.OBJECT
+            self.object_storage = local_storage_object
+
+        self.optional_print(f"Using storage type: {self.storage_type}.")
+
         self.keycloak_endpoint = keycloak_endpoint
         self.client_id = client_id
-        self.silent = silent
 
         # initialise empty stage tokens
         self.stage_tokens: Optional[Tokens] = None
@@ -101,10 +139,9 @@ class DeviceFlowManager:
         self.token_endpoint = self.keycloak_endpoint + "/protocol/openid-connect/token"
         self.device_endpoint = self.keycloak_endpoint + \
             "/protocol/openid-connect/auth/device"
-        self.token_storage_location = local_storage_location
 
         if force_token_refresh:
-            self.reset_local_storage()
+            self.reset_storage()
 
         self.retrieve_keycloak_public_key()
         self.get_tokens()
@@ -140,18 +177,36 @@ class DeviceFlowManager:
         Optional[Tokens]
             Tokens object if successful or None.
         """
-        self.optional_print("Looking for existing tokens in local storage.")
-        self.optional_print("")
-        # Try to read file
-        try:
-            stage_tokens = StageTokens.parse_file(self.token_storage_location)
-            tokens = stage_tokens.stages.get(stage)
-            assert tokens
-        except:
+
+        if self.storage_type == StorageType.FILE:
             self.optional_print(
-                f"No local storage tokens for stage {stage} found.")
+                "Looking for existing tokens in local storage.")
             self.optional_print("")
-            return None
+            # Try to read file
+            try:
+                stage_tokens = StageTokens.parse_file(
+                    self.token_storage_location)
+                tokens = stage_tokens.stages.get(stage)
+                assert tokens
+            except:
+                self.optional_print(
+                    f"No local storage tokens for stage {stage} found.")
+                self.optional_print("")
+                return None
+        elif self.storage_type == StorageType.OBJECT:
+            self.optional_print(
+                "Looking for existing tokens in provided object.")
+            self.optional_print("")
+            # Try to read object
+            try:
+                stage_tokens = StageTokens.parse_obj(self.object_storage)
+                tokens = stage_tokens.stages.get(stage)
+                assert tokens
+            except:
+                self.optional_print(
+                    f"No local storage tokens in provided storage for {stage}.")
+                self.optional_print("")
+                return None
 
         # Validate
         self.optional_print("Validating found tokens")
@@ -204,23 +259,27 @@ class DeviceFlowManager:
             self.optional_print()
             return None
 
-    def reset_local_storage(self) -> None:
+    def reset_storage(self) -> None:
         """Resets the local storage by setting all 
         values to None.
         """
-        self.optional_print("Flushing tokens from local storage.")
-        cleared_tokens = StageTokens(
-            stages={
-                Stage.TEST: None,
-                Stage.DEV: None,
-                Stage.STAGE: None,
-                Stage.PROD: None
-            }
-        )
 
-        # Dump the cleared file into storage
-        with open(self.token_storage_location, 'w') as f:
-            f.write(cleared_tokens.json())
+        if self.storage_type == StorageType.FILE:
+            self.optional_print("Flushing tokens from local storage.")
+            cleared_tokens = StageTokens(
+                stages={
+                    Stage.TEST: None,
+                    Stage.DEV: None,
+                    Stage.STAGE: None,
+                    Stage.PROD: None
+                }
+            )
+
+            # Dump the cleared file into storage
+            with open(self.token_storage_location, 'w') as f:
+                f.write(cleared_tokens.json())
+        elif self.storage_type == StorageType.OBJECT:
+            self.object_storage.clear()
 
     def update_local_storage(self, stage: Stage) -> None:
         """Pulls the current StageTokens object from cache
@@ -237,33 +296,66 @@ class DeviceFlowManager:
         assert self.tokens
         existing: Optional[bool] = None
         existing_tokens: Optional[StageTokens] = None
-        try:
-            existing_tokens = StageTokens.parse_file(
-                self.token_storage_location)
-            existing = True
-        except:
-            existing = False
 
-        assert existing is not None
-        if existing:
-            # We have existing - update current stage
-            assert existing_tokens
+        if self.storage_type == StorageType.FILE:
+            try:
+                existing_tokens = StageTokens.parse_file(
+                    self.token_storage_location)
+                existing = True
+            except:
+                existing = False
 
-            existing_tokens.stages[stage] = self.tokens
-        else:
-            existing_tokens = StageTokens(
-                stages={
-                    Stage.TEST: None,
-                    Stage.DEV: None,
-                    Stage.STAGE: None,
-                    Stage.PROD: None
-                }
-            )
-            existing_tokens.stages[stage] = self.tokens
+            assert existing is not None
+            if existing:
+                # We have existing - update current stage
+                assert existing_tokens
 
-        # Dump the file into storage
-        with open(self.token_storage_location, 'w') as f:
-            f.write(existing_tokens.json())
+                existing_tokens.stages[stage] = self.tokens
+            else:
+                existing_tokens = StageTokens(
+                    stages={
+                        Stage.TEST: None,
+                        Stage.DEV: None,
+                        Stage.STAGE: None,
+                        Stage.PROD: None
+                    }
+                )
+                existing_tokens.stages[stage] = self.tokens
+
+            # Dump the file into storage
+            with open(self.token_storage_location, 'w') as f:
+                f.write(existing_tokens.json())
+        elif self.storage_type == StorageType.OBJECT:
+            try:
+                existing_tokens = StageTokens.parse_obj(
+                    self.object_storage)
+                existing = True
+            except:
+                existing = False
+
+            assert existing is not None
+            if existing:
+                # We have existing - update current stage
+                assert existing_tokens
+
+                existing_tokens.stages[stage] = self.tokens
+            else:
+                existing_tokens = StageTokens(
+                    stages={
+                        Stage.TEST: None,
+                        Stage.DEV: None,
+                        Stage.STAGE: None,
+                        Stage.PROD: None
+                    }
+                )
+                existing_tokens.stages[stage] = self.tokens
+
+            # update local storage object
+            self.object_storage.clear()
+            new = json.loads(
+                existing_tokens.json(exclude_none=True))
+            for k, v in new.items():
+                self.object_storage[k] = v
 
     def get_tokens(self) -> None:
         """Tries to get tokens. 
