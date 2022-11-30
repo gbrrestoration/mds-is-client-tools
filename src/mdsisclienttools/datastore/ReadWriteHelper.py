@@ -4,7 +4,7 @@ import cloudpathlib.s3 as s3  # type: ignore
 from mdsisclienttools.auth.TokenManager import BearerAuth
 
 
-DEFAULT_DATA_STORE_ENDPOINT = "https://data-api.rrap-is.com"
+DEFAULT_DATA_STORE_ENDPOINT = "https://data-api.mds.gbrrestoration.org"
 
 
 def _fetch_all_datasets(auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> List[Dict[str, Any]]:
