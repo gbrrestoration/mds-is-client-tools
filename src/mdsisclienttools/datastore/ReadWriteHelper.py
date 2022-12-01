@@ -95,8 +95,8 @@ def _read_dataset(dataset_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DAT
 
         Arguments
         ----------
-        s3_info : Dict[str, Any]
-            the s3 location of the object
+        dataset_id : Dict[str, Any]
+            The datasets handle ID
         auth : BearerAuth
             The bearer token auth
 
@@ -133,8 +133,10 @@ def _write_dataset(dataset_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DA
 
         Arguments
         ----------
-        creds : Dict[str, Any]
-            The AWS creds
+        dataset_id : Dict[str, Any]
+            The datasets handle ID
+        auth : BearerAuth
+            The bearer token auth
 
         See Also (optional)
         --------
