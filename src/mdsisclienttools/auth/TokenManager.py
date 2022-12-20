@@ -35,7 +35,8 @@ class Stage(str, Enum):
 
 class Tokens(BaseModel):
     access_token: str
-    refresh_token: str
+    # refresh tokens are marked as optional because offline tokens should not be cached
+    refresh_token: Optional[str]
 
 
 class StageTokens(BaseModel):
@@ -46,11 +47,18 @@ LOCAL_STORAGE_DEFAULT = ".tokens.json"
 DEFAULT_CLIENT_ID = "client-tools"
 
 
+class AuthFlow(str, Enum):
+    DEVICE = "DEVICE"
+    OFFLINE = "OFFLINE"
+
+
 class DeviceFlowManager:
     def __init__(
         self,
         stage: str,
         keycloak_endpoint: str,
+        auth_flow: AuthFlow = AuthFlow.DEVICE,
+        offline_token: Optional[str] = None,
         client_id: str = DEFAULT_CLIENT_ID,
         local_storage_location: Optional[str] = None,
         local_storage_object: Optional[Dict[str, Any]] = None,
@@ -121,8 +129,22 @@ class DeviceFlowManager:
 
         self.optional_print(f"Using storage type: {self.storage_type}.")
 
+        # check and validate auth flow preferences
+        if auth_flow == AuthFlow.OFFLINE:
+            if not offline_token:
+                raise ValueError(
+                    "You are using an offline auth flow but did not provide an offline token!")
+        if auth_flow == AuthFlow.DEVICE:
+            if offline_token:
+                raise ValueError(
+                    "You provided an offline token but specified the DEVICE auth flow. The DEVICE auth flow does not require an offline token.")
+
+        self.optional_print(f"Using {auth_flow} auth flow.")
+        self.auth_flow = auth_flow
         self.keycloak_endpoint = keycloak_endpoint
         self.client_id = client_id
+
+        self.offline_token = offline_token
 
         # initialise empty stage tokens
         self.stage_tokens: Optional[Tokens] = None
@@ -222,6 +244,11 @@ class DeviceFlowManager:
             self.optional_print("Found tokens valid, using.")
             self.optional_print()
             return tokens
+        
+        elif self.auth_flow == AuthFlow.OFFLINE:
+            # no refresh from storage is available using the offline workflow as
+            # they are not cached
+            return None
 
         # Tokens found but were invalid, try refreshing
         refresh_succeeded = True
@@ -322,6 +349,14 @@ class DeviceFlowManager:
                 )
                 existing_tokens.stages[stage] = self.tokens
 
+            # if OFFLINE mode then remove all refresh tokens from the object so
+            # that we never cache refresh tokens
+
+            if self.auth_flow == AuthFlow.OFFLINE:
+                for stage, tokens in existing_tokens.stages.items():
+                    if tokens:
+                        tokens.refresh_token = None
+                        
             # Dump the file into storage
             with open(self.token_storage_location, 'w') as f:
                 f.write(existing_tokens.json())
@@ -349,13 +384,54 @@ class DeviceFlowManager:
                     }
                 )
                 existing_tokens.stages[stage] = self.tokens
-
+                
+            if self.auth_flow == AuthFlow.OFFLINE:
+                for stage, tokens in existing_tokens.stages.items():
+                    if tokens:
+                        tokens.refresh_token = None
+                        
             # update local storage object
             self.object_storage.clear()
             new = json.loads(
                 existing_tokens.json(exclude_none=True))
             for k, v in new.items():
                 self.object_storage[k] = v
+
+    def perform_offline_refresh(self) -> Dict[str, Any]:
+        """
+        perform_offline_refresh
+
+        Uses the current offline token to perform a token refresh.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The response from the token endpoint iff status code == 200
+
+        Raises
+        ------
+        Exception
+            Exception if non 200 status code
+        """
+        # Perform a refresh grant
+        refresh_grant_type = "refresh_token"
+
+        # Required openid connect fields
+        data = {
+            "grant_type": refresh_grant_type,
+            "client_id": self.client_id,
+            "refresh_token": self.offline_token,
+            "scope": " ".join(self.scopes)
+        }
+
+        # Send API request
+        response = requests.post(self.token_endpoint, data=data)
+
+        if (not response.status_code == 200):
+            raise Exception(
+                f"Something went wrong during offline token refresh. Status code: {response.status_code}.")
+
+        return response.json()
 
     def get_tokens(self) -> None:
         """Tries to get tokens. 
@@ -375,6 +451,7 @@ class DeviceFlowManager:
         self.optional_print("Attempting to generate authorisation tokens.")
         self.optional_print()
 
+        # try to get from local storage and attempt auto refresh
         retrieved_tokens = self.retrieve_local_tokens(self.stage)
         if retrieved_tokens:
             self.tokens = retrieved_tokens
@@ -382,61 +459,95 @@ class DeviceFlowManager:
             return
 
         # Otherwise do a normal authorisation flow
-        # grant type
-        device_grant_type = "urn:ietf:params:oauth:grant-type:device_code"
+        if self.auth_flow == AuthFlow.DEVICE:
+            # device auth flow
 
-        self.optional_print(
-            "Initiating device auth flow to setup offline access token.")
-        self.optional_print()
-        device_auth_response = self.initiate_device_auth_flow()
+            # grant type
+            device_grant_type = "urn:ietf:params:oauth:grant-type:device_code"
 
-        self.optional_print("Decoding response")
-        self.optional_print()
-        device_code = device_auth_response['device_code']
-        user_code = device_auth_response['user_code']
-        verification_uri = device_auth_response['verification_uri_complete']
-        interval = device_auth_response['interval']
+            self.optional_print(
+                "Initiating device auth flow to generate access and refresh tokens.")
+            self.optional_print()
+            device_auth_response = self.initiate_device_auth_flow()
 
-        self.optional_print("Please authorise using the following endpoint.")
-        self.optional_print()
-        self.display_device_auth_flow(user_code, verification_uri)
-        self.optional_print()
+            self.optional_print("Decoding response")
+            self.optional_print()
+            device_code = device_auth_response['device_code']
+            user_code = device_auth_response['user_code']
+            verification_uri = device_auth_response['verification_uri_complete']
+            interval = device_auth_response['interval']
 
-        self.optional_print("Awaiting completion")
-        self.optional_print()
-        oauth_tokens = self.await_device_auth_flow_completion(
-            device_code=device_code,
-            interval=interval,
-            grant_type=device_grant_type,
-        )
-        self.optional_print()
+            self.optional_print(
+                "Please authorise using the following endpoint.")
+            self.optional_print()
+            self.display_device_auth_flow(user_code, verification_uri)
+            self.optional_print()
 
-        if oauth_tokens is None:
-            raise Exception(
-                "Failed to retrieve tokens from device authorisation flow!")
+            self.optional_print("Awaiting completion")
+            self.optional_print()
+            oauth_tokens = self.await_device_auth_flow_completion(
+                device_code=device_code,
+                interval=interval,
+                grant_type=device_grant_type,
+            )
+            self.optional_print()
 
-        # pull out the refresh and access token
-        # this refresh token is standard (not offline access)
-        access_token = oauth_tokens.get('access_token')
-        refresh_token = oauth_tokens.get('refresh_token')
+            if oauth_tokens is None:
+                raise Exception(
+                    "Failed to retrieve tokens from device authorisation flow!")
 
-        # Check that they are present
-        try:
-            assert access_token is not None
-            assert refresh_token is not None
-        except Exception as e:
-            raise Exception(
-                f"Token payload did not include access or refresh token: Error: {e}")
-        # Set tokens
-        self.tokens = Tokens(
-            access_token=access_token,
-            refresh_token=refresh_token
-        )
-        self.update_local_storage(self.stage)
+            # pull out the refresh and access token
+            # this refresh token is standard (not offline access)
+            access_token = oauth_tokens.get('access_token')
+            refresh_token = oauth_tokens.get('refresh_token')
 
-        self.optional_print(
-            "Token generation complete. Authorisation successful.")
-        self.optional_print()
+            # Check that they are present
+            try:
+                assert access_token is not None
+                assert refresh_token is not None
+            except Exception as e:
+                raise Exception(
+                    f"Token payload did not include access or refresh token: Error: {e}")
+            # Set tokens
+            self.tokens = Tokens(
+                access_token=access_token,
+                refresh_token=refresh_token
+            )
+            self.update_local_storage(self.stage)
+
+            self.optional_print(
+                "Token generation complete. Authorisation successful.")
+            self.optional_print()
+
+        elif self.auth_flow == AuthFlow.OFFLINE:
+            # offline auth flow
+
+            # perform offline refresh
+            oauth_tokens = self.perform_offline_refresh()
+
+            # pull out the refresh and access token
+            # this refresh token is standard (not offline access)
+            access_token = oauth_tokens.get('access_token')
+            refresh_token = oauth_tokens.get('refresh_token')
+
+            # Check that they are present
+            try:
+                assert access_token is not None
+                assert refresh_token is not None
+            except Exception as e:
+                raise Exception(
+                    f"Offline refresh token payload did not include access or refresh token: Error: {e}")
+
+            # Set tokens
+            self.tokens = Tokens(
+                access_token=access_token,
+                refresh_token=refresh_token
+            )
+            self.update_local_storage(self.stage)
+
+            self.optional_print(
+                "Offline token generation complete. Authorisation successful.")
+            self.optional_print()
 
     def perform_token_refresh(self) -> None:
         """Updates the current tokens by using the refresh token.
@@ -493,6 +604,7 @@ class DeviceFlowManager:
             desired_tokens = self.tokens
 
         assert desired_tokens
+        assert desired_tokens.refresh_token
 
         # Required openid connect fields
         data = {
