@@ -244,10 +244,14 @@ class DeviceFlowManager:
             self.optional_print("Found tokens valid, using.")
             self.optional_print()
             return tokens
-        
+
         elif self.auth_flow == AuthFlow.OFFLINE:
             # no refresh from storage is available using the offline workflow as
             # they are not cached
+            self.optional_print(
+                "Refresh not cached for offline workflow - regenerating using offline token."
+            )
+            self.optional_print()
             return None
 
         # Tokens found but were invalid, try refreshing
@@ -356,10 +360,10 @@ class DeviceFlowManager:
                 for stage, tokens in existing_tokens.stages.items():
                     if tokens:
                         tokens.refresh_token = None
-                        
+
             # Dump the file into storage
             with open(self.token_storage_location, 'w') as f:
-                f.write(existing_tokens.json())
+                f.write(existing_tokens.json(exclude_none=True))
         elif self.storage_type == StorageType.OBJECT:
             try:
                 existing_tokens = StageTokens.parse_obj(
@@ -384,12 +388,12 @@ class DeviceFlowManager:
                     }
                 )
                 existing_tokens.stages[stage] = self.tokens
-                
+
             if self.auth_flow == AuthFlow.OFFLINE:
                 for stage, tokens in existing_tokens.stages.items():
                     if tokens:
                         tokens.refresh_token = None
-                        
+
             # update local storage object
             self.object_storage.clear()
             new = json.loads(
