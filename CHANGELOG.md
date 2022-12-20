@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.5.3 (2022-12-19)
+
+
+## v1.5.2 (2022-11-30)
+### Fix
+* **IOHelper:** Updating default data store API endpoint due to new domain ([`2781d22`](https://github.com/gbrrestoration/mds-is-client-tools/commit/2781d22a75f19fa8625fd8708bfce6e5402b9072))
+
 ## v1.5.1 (2022-11-04)
 
 

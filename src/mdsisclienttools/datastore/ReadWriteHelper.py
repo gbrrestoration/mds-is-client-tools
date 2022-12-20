@@ -89,14 +89,14 @@ def _fetch_dataset(handle_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DAT
             raise e
 
 
-def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
+def _read_dataset(dataset_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
     """    read_dataset
         Gets AWS read credentials using the data store API.
 
         Arguments
         ----------
-        s3_info : Dict[str, Any]
-            the s3 location of the object
+        dataset_id : Dict[str, Any]
+            The datasets handle ID
         auth : BearerAuth
             The bearer token auth
 
@@ -114,7 +114,7 @@ def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEF
     read_cred_endpoint = endpoint + \
         "/registry/credentials/generate-read-access-credentials"
     response = requests.post(read_cred_endpoint, json={
-        "s3_location": s3_info,
+        "dataset_id": dataset_id,
         "console_session_required": False
     }, auth=auth)
 
@@ -127,14 +127,16 @@ def _read_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEF
     return response['credentials']
 
 
-def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
+def _write_dataset(dataset_id: str, auth: BearerAuth, endpoint: str = DEFAULT_DATA_STORE_ENDPOINT) -> Dict[str, Any]:
     """  _write_dataset
         Gets AWS write credentials using the data store API.
 
         Arguments
         ----------
-        creds : Dict[str, Any]
-            The AWS creds
+        dataset_id : Dict[str, Any]
+            The datasets handle ID
+        auth : BearerAuth
+            The bearer token auth
 
         See Also (optional)
         --------
@@ -146,7 +148,7 @@ def _write_dataset(s3_info: Dict[str, Any], auth: BearerAuth, endpoint: str = DE
         "/registry/credentials/generate-write-access-credentials"
     response = requests.post(write_credential_endpoint,
                              json={
-                                 "s3_location": s3_info,
+                                 "dataset_id": dataset_id,
                                  "console_session_required": False
                              }, auth=auth)
 
@@ -283,7 +285,7 @@ def upload(handle: str, auth: BearerAuth, source_dir: str, data_store_api_endpoi
             f'Invalid input... the dataset with that handle: {handle} could not be found.')
 
     # get write credentials for this dataset
-    creds = _write_dataset(s3_loc, auth=auth, endpoint=data_store_api_endpoint)
+    creds = _write_dataset(handle, auth=auth, endpoint=data_store_api_endpoint)
 
     print()
     print(f'Attempting to upload files to {source_dir}')
@@ -333,7 +335,7 @@ def download(download_path: str, handle: str, auth: BearerAuth, data_store_api_e
             f'Invalid input... the dataset with that handle: {handle} could not be found.')
 
     # get read credentials for this dataset
-    creds = _read_dataset(s3_loc, auth=auth, endpoint=data_store_api_endpoint)
+    creds = _read_dataset(handle, auth=auth, endpoint=data_store_api_endpoint)
 
     print()
     print(f'Attempting to download files to {download_path}')
