@@ -1,5 +1,5 @@
 mypy
-pydantic
+pydantic==1.10.12
 requests
 pytest
 types-requests
